@@ -2,6 +2,8 @@ package br.grupointegrado.ads.picaretas.controle;
 
 import br.grupointegrado.ads.picaretas.modelo.Usuario;
 import br.grupointegrado.ads.picaretas.modelo.UsuarioDao;
+import br.grupointegrado.ads.picaretas.util.Util;
+import br.grupointegrado.ads.picaretas.util.ValidacaoUtil;
 import java.io.IOException;
 import java.sql.Connection;
 import javax.servlet.ServletException;
@@ -33,11 +35,25 @@ public class LoginServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String acaoParam = req.getParameter("acao");
-        if ("login".equals(acaoParam)) {
-            login(req, resp);
-        } else if ("cadastro".equals(acaoParam)) {
-            cadastro(req, resp);
+        try {
+            String acaoParam = req.getParameter("acao");
+            String erro = validaFormulario(req, resp);
+            if (erro.isEmpty()) {
+
+                if ("login".equals(acaoParam)) {
+                    login(req, resp);
+                } else if ("cadastro".equals(acaoParam)) {
+                    cadastro(req, resp);
+                }
+                resp.sendRedirect("Consulta");
+            } else {
+                req.setAttribute("mensagem_erro", erro);
+                doGet(req, resp);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            req.setAttribute("mensagem_erro", "Não foi possível publicar o produto.");
+            doGet(req, resp);
         }
     }
 
@@ -52,6 +68,7 @@ public class LoginServlet extends HttpServlet {
         String sen = (String) req.getParameter("senha");
         req.setAttribute("ape", ape);
         req.setAttribute("sen", sen);
+
         try {
             String apelido = req.getParameter("apelido");
             String senha = req.getParameter("senha");
@@ -104,5 +121,29 @@ public class LoginServlet extends HttpServlet {
             req.setAttribute("mensagem_erro", "Ocorreu um erro inesperado.");
             doGet(req, resp);
         }
+    }
+
+    private String validaFormulario(HttpServletRequest req, HttpServletResponse resp) {
+
+        String erro = "";
+
+        String apelidoParam = req.getParameter("apelido");
+        if (!ValidacaoUtil.validaString(apelidoParam, 3)) {
+            erro += "Necessário um apelido com mais de três caracteres!<br />";
+        } else if (!ValidacaoUtil.validaStringMaximo(apelidoParam, 50)) {
+            erro += "Campo Apelido superior a 50 caracteres!<br />";
+        }
+
+        String emailParam = req.getParameter("email");
+        if (!ValidacaoUtil.validaEmail(emailParam)) {
+            erro += "Campo E-mail não pode ter caracteres especiais!<br />";
+        }
+
+        String senhaParam = req.getParameter("senha");
+        if (!ValidacaoUtil.validaSenha(senhaParam)) {
+            erro += "Senha deve ter no mínimo 8 caracteres e deve possir letras e números!<br />";
+        }
+
+        return erro;
     }
 }
